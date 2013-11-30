@@ -1,5 +1,11 @@
 /****************** General styles
 */
+
+#page {
+  width: 1820px;
+  margin-left: 40px;
+}
+
 #gallery #current {
   float: left;
   position: relative;
@@ -52,7 +58,6 @@
 }
 #container #content{
   background-color: #fff;
-  height: 603px;
 }
 #container {
   position: relative;
@@ -68,8 +73,38 @@
   top: 0;
   z-index: 9999;
 }
-@media (max-width: 1000px) {
+@media (max-width: 1366px) {
+  #page {
+    margin-left: 10px;
+    width: 1333px;
+  }
+  #gallery #current {
+    height: 443px;
+  }
+  
   #gallery #current img{
-    width: 100px;
+    width: 999px;
+    height: 443px;
+  }
+  
+  #current .body {
+    width: 999px;
+  }
+  .page {
+    width: 333px;
+  }
+  .item {
+    height: 110px;
+    width: 110px;
+  }
+  .item img {
+    width: 110px;
+    height: 110px;
+  }
+  #list {
+    min-height: 443px;
+  }
+  .pager {
+    margin-top: 450px;
   }
 }

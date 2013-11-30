@@ -6,12 +6,12 @@ function debug(message) {
 
   Drupal.behaviors.pm_navigation = function(context) {
     var settings = Drupal.settings.pm_navigation;
-
+    var readyClass = new ReadyClass();
     //$(document).on('click', '#block-menu-menu-pm-navigation a, #logo-title a, #gallery a',function (){})
     $('#block-menu-menu-pm-navigation a, #logo-title a, #gallery a').click(function(e) {
       $('#block-menu-menu-pm-navigation a, #logo-title a, #gallery a').unbind('click');
       if (typeof settings.ajax_navigation !== 'undefined' &&
-          settings.ajax_navigation == true) {
+              settings.ajax_navigation == true) {
         e.preventDefault();
         ajaxLoadNextPage(this);
         return false;
@@ -30,12 +30,17 @@ function debug(message) {
      */
     var ajaxLoadNextPage = function(link) {
       var navInfo = getNavigationInfo(link);
+
       html2canvas($(navInfo.placeholder), {onrendered: function(canvas) {
           console.log('canvas ready');
-          dataIsReady('image', '#animation-placeholder', canvas);
+          readyClass.saveData('image', '#animation-placeholder', canvas);
           //images_storage[$(link).attr('href')] = canvas.toDataURL("image/png");
         },
       });
+
+
+      //dataIsReady('image','#animation-placholder', $(navInfo.placeholder).html());
+
       $.ajax({
         url: '/ajax_navigation/',
         type: 'GET',
@@ -44,7 +49,7 @@ function debug(message) {
         success: function(data) {
           historyPushState($(link).attr('href'), data)
           console.log('data ready')
-          dataIsReady('page', navInfo.placeholder, data);
+          readyClass.saveData('page', navInfo.placeholder, data);
         },
         error: function() {
         }
@@ -59,7 +64,7 @@ function debug(message) {
         title = settings.site_name
       } else {
         title = settings.site_name + " | "
-          + $.trim($('.title', data).text());
+                + $.trim($('.title', data).text());
       }
       document.title = title;
 
@@ -88,30 +93,39 @@ function debug(message) {
     };
 
 
-    var image_ready = false;
-    var data_ready = false;
+    function ReadyClass() {
+      this.data_ready = false;
+      this.image_ready = false;
+      this.all_data = new Object();
+    }
 
-    var dataIsReady = function(type, placeholder, data) {
+    ReadyClass.prototype.saveData = function(type, placeholder, data) {
+      //alert(this.publicVariable);
       switch (type) {
         case 'image':
-          $('#animation-placeholder').append(getImageFromCanvas(data));
-          $('#animation-placeholder').show();
-          $('#animation-placeholder').fadeOut('slow', function() {
-            $(this).empty();
-          });
-          image_ready = true;
+          console.log(this.all_data);
+          this.all_data.image = {'type': type, 'placeholder': placeholder, 'data': getImageFromCanvas(data)}
+          this.image_ready = true;
           break;
         case 'page':
-          data_ready = true;
+          this.all_data.page = {'type': type, 'placeholder': placeholder, 'data': data}
+          this.data_ready = true;
           break;
+
+          
       }
-      if (image_ready && data_ready) {
-        image_ready = false;
-        data_ready = false;
-        dataIsReadyCallback(placeholder, data);
+      if (this.image_ready && this.data_ready) {
+        this.image_ready = false;
+        this.data_ready = false;
+        dataIsReadyCallback();
       }
     };
+    
+    ReadyClass.prototype.getData = function(type) {
+      return this.all_data[type];
+    }
 
+    
     var generateNewImage = function() {
       console.log('animation');
       html2canvas($('#content'), {onrendered: function(canvas) {
@@ -136,10 +150,22 @@ function debug(message) {
 
 
 
-    var dataIsReadyCallback = function(placeholder, data) {
-      if (debug)
-        console.log('all ready');
-      $(placeholder).html(data);
+    var dataIsReadyCallback = function() {
+      console.log('all ready');
+      
+      var image = readyClass.getData('image');
+      $('#animation-placeholder').append(image.data);
+      //$('#animation-placeholder').append(data);
+      $('#animation-placeholder').show();
+      
+
+      var page = readyClass.getData('page')
+      $(page.placeholder).html(page.data);
+      
+      $('#animation-placeholder').fadeOut('slow', function() {
+        $(this).empty();
+      });
+      
       Drupal.behaviors.pm_navigation();
       Drupal.behaviors.pm_navigation_description();
       //generateNewImage();
@@ -150,3 +176,4 @@ function debug(message) {
   };
 
 })(jQuery, Drupal);
+

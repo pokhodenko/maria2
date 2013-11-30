@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+        <head>
+                <meta charset=utf-8 />
+                <title>Flux Slider Demo &#0187; Hardware accelerated image transitions using CSS3</title>
+                <!--[if lte IE 8]>
+                         <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+                <![endif]-->
+                <link rel="stylesheet" href="css/demo.css" type="text/css" media="screen" title="no title" charset="utf-8">
+
+                <!-- Use Zepto for best performance on WebKit based browser -->
+                <!-- <script src="js/zepto/zepto.js" type="text/javascript" charset="utf-8"></script> -->
+
+                <!-- Use jQuery for best compatibility with other CSS3 enabled browsers -->
+                <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+
+                <script src="flux.js" type="text/javascript" charset="utf-8"></script>
+                <script type="text/javascript" charset="utf-8">
+                        $(function(){
+                                if(!flux.browser.supportsTransitions)
+                                        alert("Flux Slider requires a browser that supports CSS3 transitions");
+
+                                window.f = new flux.slider('#slider', {
+                                        pagination: false,
+                                        autoplay: false,
+                                });
+                        });
+                </script>
+        </head>
+        <body>
+                <section class="container">
+                        <h1><span class="flux">Flux</span> <span class="slider">Slider</span></h1>
+                        <h2>Hardware accelerated image transitions using CSS3.</h2>
+                        <div id="slider">
+                                <img src="img/avatar.jpg" alt="" />
+                                <img src="img/ironman.jpg" alt="" />
+                                <img src="img/tron.jpg" alt="" />
+                                <img src="img/greenhornet.jpg" alt="" />
+                        </div>
+                </section>
+        </body>
+</html>

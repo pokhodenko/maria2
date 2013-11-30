@@ -1,0 +1,5 @@
+name = PM studio navigation
+description = Animated ajax navigation for PM
+package = PM
+version = VERSION
+core = 6.x

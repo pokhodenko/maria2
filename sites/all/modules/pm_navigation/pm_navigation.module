@@ -1,0 +1,242 @@
+<?php
+/**
+ * Implementation of hook_menu().
+ * @return array Menu items.
+ */
+function pm_navigation_menu() {
+  $items = array();
+  $items['ajax_navigation'] = array(
+    'page callback' => 'pm_navigation_ajax_callback',
+    'access callback' => TRUE,
+  );
+
+  $items['home_page'] = array(
+    'page callback' => 'pm_navigation_home_page_callback',
+    'access callback' => TRUE,
+  );
+
+  $items['gallery/%/%'] = array(
+    'page callback' => 'pm_navigation_category_item_callback',
+    'page arguments' => array(1, 2),
+    'access callback' => TRUE,
+  );
+
+  $items['gallery/%'] = array(
+    'page callback' => 'pm_navigation_category_item_callback',
+    'page arguments' => array(1, FALSE),
+    'access callback' => TRUE,
+  );
+
+  $items['contact'] = array(
+    'page callback' => 'pm_navigation_contact_callback',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+function pm_navigation_theme() {
+  return array(
+    'home_page' => array(
+      'arguments' => array('data' => NULL),
+      'template' => 'templates/home_page',
+    ),
+    'gallery_category' => array(
+      'arguments' => array('data' => NULL, 'current' => NULL),
+      'template' => 'templates/gallery_category',
+    ),
+    'gallery_pager' => array(
+      'arguments' => array('data' => NULL, 'current' => NULL),
+      'template' => 'templates/gallery_pager',
+    ),
+  );
+}
+
+/**
+ * Ajax callback function for nice navigation.
+ */
+function pm_navigation_ajax_callback() {
+  $url = preg_replace('/\//', '', $_GET['url'], 1);
+  if (empty($url)) {
+    $url = variable_get('site_frontpage', 'node');
+  }
+
+  echo menu_execute_active_handler($url);
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function pm_navigation_init() {
+
+  $path = drupal_get_path_alias($_GET['q']);
+
+  if (drupal_match_path($path, "home_page\ngallery*\ncontact")) {
+    $site_name = variable_get('site_name', 'Pohodenko Maria');
+    drupal_add_js(array('pm_navigation' => array(
+        'site_name' => $site_name,
+        'ajax_navigation' => TRUE,
+      )), 'setting');
+    $path = drupal_get_path('module', 'pm_navigation');
+    drupal_add_js($path . '/js/navigation.js');
+    drupal_add_js($path . '/js/flux.js');
+    drupal_add_js($path . '/js/image_description.js');
+    drupal_add_js($path . '/js/history.js');
+    drupal_add_css($path . '/css/pm_navigation.css');
+    drupal_add_css($path . '/css/pm_pager.css');
+    drupal_add_js('sites/all/modules/pm_navigation/js/html2canvas.js', 'module');
+    drupal_add_css('sites/all/modules/pm_navigation/css/main_menu.css', 'module');
+    drupal_add_css('sites/all/modules/pm_navigation/css/global.css', 'module');
+  }
+}
+
+/**
+ * Menu callback function.
+ * @return string
+ */
+function pm_navigation_home_page_callback() {
+
+
+  drupal_add_js(array('pm_navigation' => array(
+    'site_name' => $site_name,
+    'ajax_navigation' => TRUE,
+  )), 'setting');
+
+  $result = db_query('
+    SELECT
+      n.nid,
+      r.title,
+      r.body,
+      p.field_category_value,
+      i_p.filepath as preview_filepath,
+      i_m.filepath as main_filepath
+    FROM node n
+    INNER JOIN node_revisions r
+    ON n.nid = r.nid
+    INNER JOIN content_type_portfolio p
+    ON p.nid = n.nid
+    INNER JOIN files i_p
+    ON i_p.fid = p.field_image_preview_fid
+    INNER JOIN files i_m
+    ON i_m.fid = p.field_image_main_fid
+    LIMIT 0, 48'
+  );
+
+  $rows = array();
+  while ($row = db_fetch_array($result)) {
+    $rows[] = $row;
+  }
+
+  return theme('home_page', $rows);
+}
+
+/**
+ * Menu callback function.
+ *
+ * @param type $category
+ * @param type $id
+ */
+function pm_navigation_category_item_callback($category = NULL, $id = FALSE) {
+
+  $site_name = variable_get('site_name');
+
+  $result = db_query('
+    SELECT
+      n.nid,
+      r.title,
+      r.body,
+      p.field_category_value,
+      i_p.filepath as preview_filepath,
+      i_m.filepath as main_filepath
+    FROM node n
+    INNER JOIN node_revisions r
+    ON n.nid = r.nid
+    INNER JOIN content_type_portfolio p
+    ON p.nid = n.nid
+    INNER JOIN files i_p
+    ON i_p.fid = p.field_image_preview_fid
+    INNER JOIN files i_m
+    ON i_m.fid = p.field_image_main_fid
+    WHERE p.field_category_value = "%s"', array($category)
+  );
+
+  $rows = array();
+
+  // Item not found by default
+  $current_item = FALSE;
+
+  while ($row = db_fetch_array($result)) {
+    $rows[$row['nid']] = $row;
+    // Find item by id or set first as current.
+    if ($current_item == FALSE) {
+      if ($id === FALSE) {
+        $current_item = $row;
+      } elseif ($row['nid'] == $id) {
+        $current_item = $row;
+        drupal_set_title($site_name. ' | ' .$row['title']);
+      }
+    }
+  }
+  $paged = pm_navigation_return_paged_array($rows, 12, $current_item);
+
+  $paged['pager'] = theme('gallery_pager',$paged, $current_item);
+
+  return theme('gallery_category', $paged, $current_item);
+}
+
+/**
+ * Helper function returns paged version of portfolio items.
+ *
+ * @param array $array All portfolio items.
+ * @param int $per_page Items per page.
+ * @param array $current Current item array.
+ * @return array Paged array.
+ */
+function pm_navigation_return_paged_array($array, $per_page, $current) {
+  $page = 1;
+  $paged_array = array();
+  $paged_array['info'] = array();
+  $paged_array['items'] = array();
+  while (!empty($array)) {
+    for ($i = 0; $i < $per_page; $i++) {
+      if ($tmp = array_shift($array)) {
+        $paged_array['items'][$page][$tmp['nid']] = $tmp;
+        if ($tmp['nid'] == $current['nid']) {
+          $paged_array['info']['active_page'] = $page;
+        }
+      }
+    }
+    $page++;
+  }
+  return $paged_array;
+}
+
+/**
+ * Helper function.
+ * Creates image if it is not present and returns themed image.
+ *
+ * @param string $preset_name
+ * @param string $filepath
+ * @return string Html for needed image.
+ */
+function pm_theme_imagecache($preset_name, $filepath) {
+  $preset = imagecache_preset_by_name($preset_name);
+  $dst = imagecache_create_path($preset_name, $filepath);
+  // Ensure existing derivative or try to create it on the fly
+  if (file_exists($dst) || imagecache_build_derivative($preset['actions'], $filepath, $dst)) {
+    // Do what you need to do with the image
+    return theme_imagecache($preset_name, $filepath);
+  }
+}
+
+function pm_navigation_contact_callback() {
+  $result = db_query('SELECT
+      n.nid
+    FROM node n
+    WHERE type = "contact_page"');
+  if ($node = db_fetch_array($result)) {
+    return node_view(node_load($node['nid']));
+  } else {
+    return drupal_not_found();
+  }
+}

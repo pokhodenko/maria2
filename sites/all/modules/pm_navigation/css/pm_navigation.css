@@ -57,6 +57,7 @@
   border-left: 1px solid #fff;
 }
 #container #content{
+  height: 603px;
   background-color: #fff;
 }
 #container {
@@ -76,7 +77,10 @@
 @media (max-width: 1366px) {
   #page {
     margin-left: 10px;
-    width: 1333px;
+    width: 1340px;
+  }
+  #container #content{
+    height: 443px;
   }
   #gallery #current {
     height: 443px;

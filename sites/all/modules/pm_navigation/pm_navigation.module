@@ -56,12 +56,30 @@ function pm_navigation_theme() {
  * Ajax callback function for nice navigation.
  */
 function pm_navigation_ajax_callback() {
-  $url = preg_replace('/\//', '', $_GET['url'], 1);
+  $url = $_GET['url'];
+  pm_navigation_exclude_langcode($url);
+  
+  pm_navigation_exclude_first_slash($url);
   if (empty($url)) {
     $url = variable_get('site_frontpage', 'node');
   }
+  
+  return menu_execute_active_handler($url);
+}
 
-  echo menu_execute_active_handler($url);
+function pm_navigation_exclude_first_slash(&$url) {
+  $url = preg_replace('/\//', '', $url, 1);
+}
+
+function pm_navigation_exclude_langcode(&$url) {
+  global $language;
+  $list = language_list();
+  foreach($list as $langcode => $lang) {
+    if (strpos($url, '/' . $langcode) === 0) {
+      $language = $lang;
+      $url = str_replace('/' . $langcode, '', $url);
+    }
+  }
 }
 
 /**
@@ -69,9 +87,9 @@ function pm_navigation_ajax_callback() {
  */
 function pm_navigation_init() {
 
-  $path = drupal_get_path_alias($_GET['q']);
-
-  if (drupal_match_path($path, "home_page\ngallery*\ncontact")) {
+  $path = drupal_get_normal_path($_GET['q']);
+  
+  if (drupal_match_path($path, implode(PHP_EOL, array('home_page', 'gallery*', 'contact')))) {
     $site_name = variable_get('site_name', 'Pohodenko Maria');
     drupal_add_js(array('pm_navigation' => array(
         'site_name' => $site_name,
@@ -83,6 +101,7 @@ function pm_navigation_init() {
     drupal_add_js($path . '/js/image_description.js');
     drupal_add_js($path . '/js/history.js');
     drupal_add_css($path . '/css/pm_navigation.css');
+    drupal_add_css($path . '/css/block_locale.css');
     drupal_add_css($path . '/css/pm_pager.css');
     drupal_add_js('sites/all/modules/pm_navigation/js/html2canvas.js', 'module');
     drupal_add_css('sites/all/modules/pm_navigation/css/main_menu.css', 'module');
@@ -95,12 +114,6 @@ function pm_navigation_init() {
  * @return string
  */
 function pm_navigation_home_page_callback() {
-
-
-  drupal_add_js(array('pm_navigation' => array(
-    'site_name' => $site_name,
-    'ajax_navigation' => TRUE,
-  )), 'setting');
 
   $result = db_query('
     SELECT
@@ -238,5 +251,42 @@ function pm_navigation_contact_callback() {
     return node_view(node_load($node['nid']));
   } else {
     return drupal_not_found();
+  }
+}
+
+function pm_navigation_translation_link_alter(&$links, $path) {
+  if ($path == 'ajax_navigation') {
+    global $language;
+    $url = $_GET['url'];
+    pm_navigation_exclude_langcode($url);
+    pm_navigation_exclude_first_slash($url);
+    foreach($links as $langcode => $link) {
+      $links[$langcode]['href'] = $url;
+      if ($langcode == $language->language) {
+        $links[$langcode]['attributes']['class'] .= ' active';
+      }
+    }
+  }
+}
+
+function pm_navigation_common_link_alter(&$options, $path, $text) {
+  if ($_GET['q'] == 'ajax_navigation') {
+    $url = $_GET['url'];
+    pm_navigation_exclude_first_slash($url);
+    
+    $languages = language_list();
+    foreach($languages as $langcode => $lang) {
+      if ($text === $lang->name) {
+        return;
+      }
+    }
+    
+    if (strpos($url, $path) !== FALSE) {
+      if (isset($options['attributes']['class'])) {
+        $options['attributes']['class'] .= ' active';
+      } else {
+        $options['attributes']['class'] = 'active';
+      }
+    }
   }
 }

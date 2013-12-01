@@ -98,16 +98,16 @@
           </div>
         <?php endif; ?>
         <div id="logo-title">
-
-          <?php if (!empty($logo)): ?>
+          <?php $mission = theme_get_setting('mission', false); ?>
+          <?php if (!empty($mission)): ?>
             <a href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>" rel="home" id="logo">
-              <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" />
+              <?php echo $mission; ?>
             </a>
           <?php endif; ?>
 
         </div> <!-- /logo-title -->
       </div> <!-- /header -->
-
+      <div class="clearfix"></div>
       <div id="container" class="clear-block">
 
         <div id="content">

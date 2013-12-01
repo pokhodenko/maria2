@@ -1,0 +1,12 @@
+.block-locale li{
+  list-style: none;
+  float: left;
+}
+.block-locale li:after{
+  content: "|";
+}
+.block-locale li.last:after{
+  content: "";
+}
+
+

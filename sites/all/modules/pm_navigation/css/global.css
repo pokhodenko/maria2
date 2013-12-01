@@ -1,4 +1,31 @@
-
+#header {
+  border-bottom: 1px solid #afafaf;
+  margin-bottom: 15px;
+  padding-top: 10px;
+}
 #footer {
   text-align: center;
+}
+.clearfix {
+  display: block;
+  clear: both;
+}
+a {
+  color: #0f0f0f;
+  text-decoration: none;
+}
+a.active {
+  color: #1ECCFC !important;
+}
+a:visited {
+  color: #0f0f0f;
+}
+ul {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#logo-title a {
+  font-size: 20px;
+  line-height: 15px;
+  padding: 0px 0px 0px 10px;
 }

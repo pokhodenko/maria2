@@ -1,4 +1,3 @@
-var images_storage = {};
 function debug(message) {
   console.log(message + ' at ' + new Date().getTime());
 }
@@ -7,9 +6,14 @@ function debug(message) {
   Drupal.behaviors.pm_navigation = function(context) {
     var settings = Drupal.settings.pm_navigation;
     var readyClass = new ReadyClass();
+    var requestCompleted = true;
     //$(document).on('click', '#block-menu-menu-pm-navigation a, #logo-title a, #gallery a',function (){})
-    $('#block-menu-menu-pm-navigation a, #logo-title a, #gallery a').click(function(e) {
-      $('#block-menu-menu-pm-navigation a, #logo-title a, #gallery a').unbind('click');
+    $('#header a, #gallery a').click(function(e) {
+      if (requestCompleted == false) {
+        e.preventDefault();
+        return false;
+      }
+     
       if (typeof settings.ajax_navigation !== 'undefined' &&
               settings.ajax_navigation == true) {
         e.preventDefault();
@@ -29,35 +33,44 @@ function debug(message) {
      *
      */
     var ajaxLoadNextPage = function(link) {
+      requestCompleted = false;
       var navInfo = getNavigationInfo(link);
 
       html2canvas($(navInfo.placeholder), {onrendered: function(canvas) {
-          console.log('canvas ready');
+          debug('canvas ready');
           readyClass.saveData('image', '#animation-placeholder', canvas);
-          //images_storage[$(link).attr('href')] = canvas.toDataURL("image/png");
         },
       });
-
-
-      //dataIsReady('image','#animation-placholder', $(navInfo.placeholder).html());
 
       $.ajax({
         url: '/ajax_navigation/',
         type: 'GET',
         data: {url: $(link).attr('href')},
         dataType: 'html',
+        complete: function() {
+          requestCompleted = true;
+        },
         success: function(data) {
+          var header = $(data).find('#header').html();
+          $('#header').html(header);
+          data = $(data).find('#content').html();
           historyPushState($(link).attr('href'), data)
-          console.log('data ready')
+          debug('data ready')
           readyClass.saveData('page', navInfo.placeholder, data);
         },
         error: function() {
         }
       });
     };
+    
+    $(document).ajaxComplete(function(event, xhr, settings ) {
+      if (settings.url.indexOf('ajax_navigation')) {
+        readyClass.dataIsReady();
+      }
+    });
 
     var historyPushState = function(url, data) {
-      console.log($.trim($('.title', data).text()));
+      debug($.trim($('.title', data).text()));
       var title_text = $.trim($('.title', data).text());
       var title;
       if (title_text === "") {
@@ -100,10 +113,9 @@ function debug(message) {
     }
 
     ReadyClass.prototype.saveData = function(type, placeholder, data) {
-      //alert(this.publicVariable);
       switch (type) {
         case 'image':
-          console.log(this.all_data);
+          debug(this.all_data);
           this.all_data.image = {'type': type, 'placeholder': placeholder, 'data': getImageFromCanvas(data)}
           this.image_ready = true;
           break;
@@ -111,47 +123,27 @@ function debug(message) {
           this.all_data.page = {'type': type, 'placeholder': placeholder, 'data': data}
           this.data_ready = true;
           break;
-
           
-      }
+      }  
+    };
+    
+    ReadyClass.prototype.dataIsReady = function() {
       if (this.image_ready && this.data_ready) {
         this.image_ready = false;
         this.data_ready = false;
+        //setTimeout(dataIsReadyCallback, 100);
         dataIsReadyCallback();
+      } else {
+        setTimeout(this.dataIsReady, 10);
       }
-    };
+    }
     
     ReadyClass.prototype.getData = function(type) {
       return this.all_data[type];
     }
 
-    
-    var generateNewImage = function() {
-      console.log('animation');
-      html2canvas($('#content'), {onrendered: function(canvas) {
-          if (typeof window.f == 'undefined') {
-            $('#animation-placeholder').append(getImageFromCanvas(canvas));
-            window.f = new flux.slider('#animation-placeholder', {
-              pagination: false,
-              autoplay: false,
-            });
-          } else {
-            $('.fluxslider .image2').css('background', 'url('
-                    + canvas.toDataURL("image/png") + ')');
-            console.log('set image 2');
-          }
-          setTimeout(function() {
-            //window.f.next();
-            window.f.transition('swipe');
-          }, 1)
-        },
-      });
-    }
-
-
-
     var dataIsReadyCallback = function() {
-      console.log('all ready');
+      debug('all ready');
       
       var image = readyClass.getData('image');
       $('#animation-placeholder').append(image.data);
@@ -161,19 +153,16 @@ function debug(message) {
 
       var page = readyClass.getData('page')
       $(page.placeholder).html(page.data);
-      
-      $('#animation-placeholder').fadeOut('slow', function() {
+      setTimeout(function(){
+        $('#animation-placeholder').fadeOut('slow', function() {
         $(this).empty();
       });
+      });
       
+      $('#header a, #gallery a').unbind('click');
       Drupal.behaviors.pm_navigation();
       Drupal.behaviors.pm_navigation_description();
-      //generateNewImage();
-
     };
-
-
   };
 
 })(jQuery, Drupal);
-

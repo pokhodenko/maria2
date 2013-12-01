@@ -6,4 +6,8 @@
   float: left;
   padding: 10px 30px 10px 50px;
 }
-
+@media (max-width: 1366px) {
+  #block-menu-menu-pm-navigation li{
+    padding: 0px 23px 0px 6px;
+  }
+}

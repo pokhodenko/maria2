@@ -7,15 +7,15 @@ function debug(message) {
     var settings = Drupal.settings.pm_navigation;
     var readyClass = new ReadyClass();
     var requestCompleted = true;
-    //$(document).on('click', '#block-menu-menu-pm-navigation a, #logo-title a, #gallery a',function (){})
+
     $('#header a, #gallery a').click(function(e) {
       if (requestCompleted == false) {
         e.preventDefault();
         return false;
       }
-     
+
       if (typeof settings.ajax_navigation !== 'undefined' &&
-              settings.ajax_navigation == true) {
+          settings.ajax_navigation == true) {
         e.preventDefault();
         ajaxLoadNextPage(this);
         return false;
@@ -25,8 +25,6 @@ function debug(message) {
 
     $('#animation-placeholder').bind('fluxTransitionEnd', function(event) {
       $('#animation-placeholder').hide();
-      //var img = event.data.currentImage;
-      // Do something with img...
     });
 
     /**
@@ -37,7 +35,6 @@ function debug(message) {
       var navInfo = getNavigationInfo(link);
 
       html2canvas($(navInfo.placeholder), {onrendered: function(canvas) {
-          debug('canvas ready');
           readyClass.saveData('image', '#animation-placeholder', canvas);
         },
       });
@@ -55,14 +52,13 @@ function debug(message) {
           $('#header').html(header);
           data = $(data).find('#content').html();
           historyPushState($(link).attr('href'), data)
-          debug('data ready')
           readyClass.saveData('page', navInfo.placeholder, data);
         },
         error: function() {
         }
       });
     };
-    
+
     $(document).ajaxComplete(function(event, xhr, settings ) {
       if (settings.url.indexOf('ajax_navigation')) {
         readyClass.dataIsReady();
@@ -82,7 +78,7 @@ function debug(message) {
       document.title = title;
 
       history.pushState(null, null, url);
-    }
+    };
 
     /**
      * Appends canvas to body tag then captures image and then delete placeholder with canvas.
@@ -101,17 +97,29 @@ function debug(message) {
         placeholder: '#content'};
     };
 
-    var animateNextPage = function(current_page_image) {
-      $('#animation-placeholder').slideUp(500);
+    var animateNextPage = function() {
+      $('#animation-placeholder').fadeOut('slow', function() {
+        $(this).empty();
+      });
     };
 
-
+    /**
+     * Collects data and waits when both image and html data are ready.
+     * Then calls ready callback.
+     */
     function ReadyClass() {
       this.data_ready = false;
       this.image_ready = false;
       this.all_data = new Object();
-    }
+    };
 
+    /**
+     * Saves imaga and content data.
+     *
+     * @param {string} type
+     * @param {string} placeholder
+     * @param {mixed} data Html content or canvas.
+     */
     ReadyClass.prototype.saveData = function(type, placeholder, data) {
       switch (type) {
         case 'image':
@@ -123,46 +131,50 @@ function debug(message) {
           this.all_data.page = {'type': type, 'placeholder': placeholder, 'data': data}
           this.data_ready = true;
           break;
-          
-      }  
+
+      }
     };
-    
+
+    /**
+     * Checks that both image and page content ready.
+     */
     ReadyClass.prototype.dataIsReady = function() {
       if (this.image_ready && this.data_ready) {
         this.image_ready = false;
         this.data_ready = false;
-        //setTimeout(dataIsReadyCallback, 100);
         dataIsReadyCallback();
       } else {
         setTimeout(this.dataIsReady, 10);
       }
-    }
-    
+    };
+
     ReadyClass.prototype.getData = function(type) {
       return this.all_data[type];
-    }
+    };
 
+    /**
+     * Ready callback for canvas and data. Called when both are ready.
+     */
     var dataIsReadyCallback = function() {
-      debug('all ready');
-      
       var image = readyClass.getData('image');
       $('#animation-placeholder').append(image.data);
-      //$('#animation-placeholder').append(data);
       $('#animation-placeholder').show();
-      
 
-      var page = readyClass.getData('page')
+      setTimeout(appendNewData, 10); // Neew 10 ms deley to remove white screen clip.
+    };
+
+    /**
+     * Adds new page html after ajax call.
+     */
+    var appendNewData = function () {
+      var page = readyClass.getData('page');
       $(page.placeholder).html(page.data);
-      setTimeout(function(){
-        $('#animation-placeholder').fadeOut('slow', function() {
-        $(this).empty();
-      });
-      });
-      
+      animateNextPage();
+
       $('#header a, #gallery a').unbind('click');
       Drupal.behaviors.pm_navigation();
       Drupal.behaviors.pm_navigation_description();
     };
-  };
 
+  };
 })(jQuery, Drupal);

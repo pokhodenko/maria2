@@ -2,3 +2,11 @@
   color: #1ECCFC;
 }
 
+.pager a {
+  background: url('/sites/all/themes/maria/images/pager_inactive.png') no-repeat;
+  padding-right: 20px;
+}
+.pager a.active, .pager a.current {
+  background: url('/sites/all/themes/maria/images/pager_active.png') no-repeat;
+}
+

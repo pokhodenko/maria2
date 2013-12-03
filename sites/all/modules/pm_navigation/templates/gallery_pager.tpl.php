@@ -4,7 +4,7 @@
       $first = array_shift($items);
       $class = ($data['info']['active_page'] == $page) ? 'current' : '';
       $link = 'gallery/' . $first['field_category_value'] . '/' . $first['nid'];
-      echo l('*', $link, array('attributes' => array(
+      echo l('', $link, array('attributes' => array(
           'id' => 'pager-' . $page,
           'class' => $class,
       )));

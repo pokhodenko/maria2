@@ -191,6 +191,9 @@ function pm_navigation_category_item_callback($category = NULL, $id = FALSE) {
       }
     }
   }
+  if ($current_item == FALSE) {
+    return drupal_not_found();
+  }
   $paged = pm_navigation_return_paged_array($rows, 12, $current_item);
 
   $paged['pager'] = theme('gallery_pager',$paged, $current_item);

@@ -2,11 +2,15 @@
   list-style: none;
   float: left;
 }
+.block-locale li a {
+  padding: 0px 3px 0px 0px;
+}
 .block-locale li:after{
   content: "|";
 }
 .block-locale li.last:after{
   content: "";
 }
-
-
+.block-locale li.last a {
+  padding: 0px 0px 0px 3px;
+}

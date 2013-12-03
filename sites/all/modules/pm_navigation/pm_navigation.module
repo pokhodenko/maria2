@@ -58,12 +58,12 @@ function pm_navigation_theme() {
 function pm_navigation_ajax_callback() {
   $url = $_GET['url'];
   pm_navigation_exclude_langcode($url);
-  
+
   pm_navigation_exclude_first_slash($url);
   if (empty($url)) {
     $url = variable_get('site_frontpage', 'node');
   }
-  
+
   return menu_execute_active_handler($url);
 }
 
@@ -88,7 +88,7 @@ function pm_navigation_exclude_langcode(&$url) {
 function pm_navigation_init() {
 
   $path = drupal_get_normal_path($_GET['q']);
-  
+
   if (drupal_match_path($path, implode(PHP_EOL, array('home_page', 'gallery*', 'contact')))) {
     $site_name = variable_get('site_name', 'Pohodenko Maria');
     drupal_add_js(array('pm_navigation' => array(
@@ -100,12 +100,13 @@ function pm_navigation_init() {
     drupal_add_js($path . '/js/flux.js');
     drupal_add_js($path . '/js/image_description.js');
     drupal_add_js($path . '/js/history.js');
+    drupal_add_css($path . '/css/global.css', 'module');
     drupal_add_css($path . '/css/pm_navigation.css');
     drupal_add_css($path . '/css/block_locale.css');
     drupal_add_css($path . '/css/pm_pager.css');
     drupal_add_js('sites/all/modules/pm_navigation/js/html2canvas.js', 'module');
     drupal_add_css('sites/all/modules/pm_navigation/css/main_menu.css', 'module');
-    drupal_add_css('sites/all/modules/pm_navigation/css/global.css', 'module');
+
   }
 }
 
@@ -273,14 +274,14 @@ function pm_navigation_common_link_alter(&$options, $path, $text) {
   if ($_GET['q'] == 'ajax_navigation') {
     $url = $_GET['url'];
     pm_navigation_exclude_first_slash($url);
-    
+
     $languages = language_list();
     foreach($languages as $langcode => $lang) {
       if ($text === $lang->name) {
         return;
       }
     }
-    
+
     if (strpos($url, $path) !== FALSE) {
       if (isset($options['attributes']['class'])) {
         $options['attributes']['class'] .= ' active';

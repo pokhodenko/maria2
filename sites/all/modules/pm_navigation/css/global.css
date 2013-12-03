@@ -1,7 +1,14 @@
+body {
+  font-family: Helvetica, sans-serif;
+  font-size: 15px;
+  color: #363636;
+}
 #header {
-  border-bottom: 1px solid #afafaf;
+  border-bottom: 2px solid #7E7E7E;
   margin-bottom: 15px;
+  padding-bottom: 3px;
   padding-top: 10px;
+  width: 1812px;
 }
 #footer {
   text-align: center;
@@ -11,14 +18,17 @@
   clear: both;
 }
 a {
-  color: #0f0f0f;
+  color: #363636;
   text-decoration: none;
 }
 a.active {
   color: #1ECCFC !important;
 }
 a:visited {
-  color: #0f0f0f;
+  color: #363636;
+}
+a {
+   outline: 0;
 }
 ul {
   margin: 0 !important;
@@ -28,4 +38,7 @@ ul {
   font-size: 20px;
   line-height: 15px;
   padding: 0px 0px 0px 10px;
+}
+#hidden_preload_placeholder {
+  display: none;
 }

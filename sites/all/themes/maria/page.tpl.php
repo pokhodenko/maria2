@@ -134,7 +134,7 @@
         ?>
       </div> <!-- /footer -->
     </div> <!-- /footer-wrapper -->
-
+    <div id="hidden_preload_placeholder"></div>
     <?php print $closure; ?>
 
     </div> <!-- /page -->

@@ -1,72 +1,137 @@
 function debug(message) {
-  console.log(message + ' at ' + new Date().getTime());
+  //console.log(message);
+  //console.log(' at ' + new Date().getTime());
 }
+var animationCompleted = true;
 (function($, Drupal) {
 
   Drupal.behaviors.pm_navigation = function(context) {
     var settings = Drupal.settings.pm_navigation;
     var readyClass = new ReadyClass();
-    var requestCompleted = true;
 
-    $('#header a, #gallery a').click(function(e) {
-      if (requestCompleted == false) {
-        e.preventDefault();
-        return false;
+    var $ajaxNavigationLinks = $('#header a, #gallery a');
+
+    $ajaxNavigationLinks.mouseover(function(e) {
+
+      if (ajaxNavigationEnabled()) {
+        var status = ajaxLinksClass.getAjaxData(this.getAttribute('href'));
+        debug(status);
+        if (status === 'pending') {
+          return false;
+        } else if (status !== 'not_started') {
+          return false;
+        }
+        ajaxPreLoadNextPage(this);
       }
+    });
 
-      if (typeof settings.ajax_navigation !== 'undefined' &&
-          settings.ajax_navigation == true) {
+    $ajaxNavigationLinks.click(function(e) {
+      if (ajaxNavigationEnabled()) {
+        var status = ajaxLinksClass.getAjaxData(this.getAttribute('href'));
+        if (status === 'pending' || animationCompleted === false) {
+          e.preventDefault();
+          return false;
+        }
         e.preventDefault();
         ajaxLoadNextPage(this);
         return false;
       }
-
     });
 
-    $('#animation-placeholder').bind('fluxTransitionEnd', function(event) {
-      $('#animation-placeholder').hide();
-    });
+    var ajaxNavigationEnabled = function () {
+      if (typeof settings.ajax_navigation !== 'undefined' &&
+          settings.ajax_navigation == true) {
+        return true;
+      } else {
+        return false;
+      }
+     }
 
     /**
-     *
+     * On ajax links mouseenter event callback.
+     * Preloads page content before user will click on link.
+     */
+    var ajaxPreLoadNextPage = function(link) {
+      var href = link.getAttribute('href');
+      $.ajax({
+          url: '/ajax_navigation/',
+          type: 'GET',
+          data: {url: href},
+          dataType: 'html',
+          success: function(data) {
+            ajaxLinksClass.completeAjax(href, data);
+          },
+          error: function() {
+            ajaxLinksClass.completeAjax(link.getAttribute('href'), 'not_started');
+          }
+      });
+    }
+
+    /**
+     * Main ajax link click callback.
+     * Takes screenshot of current page.
+     * Does ajax call for content.
+     * If content for specified url is preloaded already takes it from cache.
      */
     var ajaxLoadNextPage = function(link) {
-      requestCompleted = false;
+      animationCompleted = false;
+      var href = link.getAttribute('href');
+      var status = ajaxLinksClass.getAjaxData(href);
+      var do_ajax = true;
+      debug(status);
+      if (status === 'pending') {
+        return;
+      }
+
+      if (status === 'not_started') {
+        ajaxLinksClass.startAjax(href);
+      } else { // var status contains saved object so no need to make request.
+        do_ajax = false;
+      }
+
       var navInfo = getNavigationInfo(link);
+      takeScreensotOfCurrentPage($(navInfo.placeholder), href);
 
-      html2canvas($(navInfo.placeholder), {onrendered: function(canvas) {
-          readyClass.saveData('image', '#animation-placeholder', canvas);
-        },
-      });
+      if (do_ajax) {
+        $.ajax({
+          url: '/ajax_navigation/',
+          type: 'GET',
+          data: {url: href},
+          dataType: 'html',
+          success: function(data) {
+            readyClass.saveData('page', navInfo.placeholder, data, href);
+          },
+          error: function() {
+          }
+        });
+      } else {
+        //debug(status);
+        readyClass.saveData(
+                'page',
+                navInfo.placeholder,
+                status,
+                href
+        );
+      }
+    };
 
-      $.ajax({
-        url: '/ajax_navigation/',
-        type: 'GET',
-        data: {url: $(link).attr('href')},
-        dataType: 'html',
-        complete: function() {
-          requestCompleted = true;
-        },
-        success: function(data) {
-          var header = $(data).find('#header').html();
-          $('#header').html(header);
-          data = $(data).find('#content').html();
-          historyPushState($(link).attr('href'), data)
-          readyClass.saveData('page', navInfo.placeholder, data);
-        },
-        error: function() {
+    /**
+     * Takes screensot.
+     * @param {Jquery html oblect} placeholder Content to capture image from.
+     * @param {string} href relative url of next page.
+     */
+    var takeScreensotOfCurrentPage = function(placeholder, href) {
+      debug(placeholder);
+      html2canvas(placeholder, {onrendered: function(canvas) {
+          readyClass.saveData('image', '#animation-placeholder', canvas, href);
         }
       });
     };
 
-    $(document).ajaxComplete(function(event, xhr, settings ) {
-      if (settings.url.indexOf('ajax_navigation')) {
-        readyClass.dataIsReady();
-      }
-    });
-
+    /**
+     *
+     */
     var historyPushState = function(url, data) {
-      debug($.trim($('.title', data).text()));
       var title_text = $.trim($('.title', data).text());
       var title;
       if (title_text === "") {
@@ -97,9 +162,14 @@ function debug(message) {
         placeholder: '#content'};
     };
 
+    /**
+     * Animates next page.
+     * Actually it animates disapearing of previous page image.
+     */
     var animateNextPage = function() {
       $('#animation-placeholder').fadeOut('slow', function() {
         $(this).empty();
+        animationCompleted = true;
       });
     };
 
@@ -120,35 +190,39 @@ function debug(message) {
      * @param {string} placeholder
      * @param {mixed} data Html content or canvas.
      */
-    ReadyClass.prototype.saveData = function(type, placeholder, data) {
+    ReadyClass.prototype.saveData = function(type, placeholder, data, url) {
+      debug('saving ' +type);
       switch (type) {
         case 'image':
-          debug(this.all_data);
-          this.all_data.image = {'type': type, 'placeholder': placeholder, 'data': getImageFromCanvas(data)}
+          var image
+          this.all_data.image = {'type': type, 'placeholder': placeholder, 'data': getImageFromCanvas(data),'url': url}
           this.image_ready = true;
           break;
         case 'page':
-          this.all_data.page = {'type': type, 'placeholder': placeholder, 'data': data}
+          this.all_data.page = {'type': type, 'placeholder': placeholder, 'data': data,'url': url}
           this.data_ready = true;
           break;
 
       }
-    };
-
-    /**
-     * Checks that both image and page content ready.
-     */
-    ReadyClass.prototype.dataIsReady = function() {
+      debug('image '+this.image_ready+' , data ' + this.data_ready);
       if (this.image_ready && this.data_ready) {
         this.image_ready = false;
         this.data_ready = false;
         dataIsReadyCallback();
-      } else {
-        setTimeout(this.dataIsReady, 10);
       }
     };
 
+    /**
+     * Returns data previously saved by saveData function.
+     * If parameter is defined, function returns image or page. If not set returns both.
+     *
+     * @param {string} type optional parameter object type.
+     * @returns {object}
+     */
     ReadyClass.prototype.getData = function(type) {
+      if (typeof type === 'undefined') {
+        return this.all_data;
+      }
       return this.all_data[type];
     };
 
@@ -156,25 +230,73 @@ function debug(message) {
      * Ready callback for canvas and data. Called when both are ready.
      */
     var dataIsReadyCallback = function() {
+      all_data = readyClass.getData();
+      ajaxLinksClass.completeAjax(all_data.page.url, all_data.page.data);
+
       var image = readyClass.getData('image');
       $('#animation-placeholder').append(image.data);
       $('#animation-placeholder').show();
 
-      setTimeout(appendNewData, 10); // Neew 10 ms deley to remove white screen clip.
+      setTimeout(appendNewData, 10); // Need 10 ms delay to remove white screen clip.
     };
 
     /**
      * Adds new page html after ajax call.
      */
     var appendNewData = function () {
+
       var page = readyClass.getData('page');
-      $(page.placeholder).html(page.data);
+      debug('append new data');
+      debug(page);
+      var $pageData = $(page.data);
+      var header = $pageData.find('#header').html();
+      $('#header').html(header);
+      var content = $pageData.find('#content').html();
+      historyPushState(page.url, content);
+
+      $(page.placeholder).html(content);
       animateNextPage();
 
-      $('#header a, #gallery a').unbind('click');
+      $ajaxNavigationLinks.unbind('click');
       Drupal.behaviors.pm_navigation();
       Drupal.behaviors.pm_navigation_description();
     };
 
   };
 })(jQuery, Drupal);
+
+/**
+ * Class stores preload content.
+ * @returns {AjaxLinksClass}
+ */
+function AjaxLinksClass() {
+  this.data = new Array();
+  this.is_busy = false;
+}
+AjaxLinksClass.prototype.startAjax = function(url) {
+  this.data[url] = 'pending';
+  this.is_busy = true;
+};
+
+AjaxLinksClass.prototype.completeAjax = function(url, data) {
+  debug(url);
+  $('#hidden_preload_placeholder').html($(data).find('#content'));
+  this.data[url] = data;
+}
+
+AjaxLinksClass.prototype.getAjaxData = function(url) {
+  if (typeof this.data[url] == 'undefined') {
+    return 'not_started';
+  } else {
+    return this.data[url];
+  }
+}
+AjaxLinksClass.prototype.isBusy = function() {
+
+}
+
+/**
+ * AjaxLinksClass instance.
+ * @type AjaxLinksClass
+ */
+var ajaxLinksClass = new AjaxLinksClass();

@@ -3,7 +3,3 @@ description = "PM studoi pro main theme"
 core = "6.x"
 engine = "phptemplate"
 
-stylesheets[screen][] = "style.css"
-
-
-

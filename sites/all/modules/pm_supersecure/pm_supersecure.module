@@ -1,0 +1,39 @@
+<?php
+/**
+ * Implementation of hook_menu().
+ * @return array Menu items.
+ */
+function pm_supersecure_menu() {
+  $items = array();
+  $path = variable_get('pm_supersecure_path', 'pm_supersecure_url');
+  $items[$path] = array(
+    'page callback' => 'pm_supersecure_callback',
+    'access callback' => TRUE,
+  );
+
+  return $items;
+}
+
+function pm_supersecure_callback() {
+  $_SESSION['pm_supersecure'] = TRUE;
+  return 'Supersecure disabled.';
+}
+
+function pm_supersecure_preprocess_page($vars) {
+  if ($_SESSION['pm_supersecure'] !== TRUE && pm_supersecure_is_url_allowed()) {
+    $_REQUEST['destination'] = 'access_denied';
+    drupal_goto('access_denied');
+  }
+}
+
+function pm_supersecure_is_url_allowed() {
+  $path = drupal_get_normal_path($_GET['q']);
+  $not_allowed = implode(
+    PHP_EOL,
+    array(
+      'node/*',
+      'user*',
+      'admin*',
+    ));
+  return drupal_match_path($path, $not_allowed);
+}

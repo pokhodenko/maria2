@@ -1,0 +1,5 @@
+name = PM studio security
+description = Blocks some urls if user not visited unlocking page.
+package = PM
+version = VERSION
+core = 6.x

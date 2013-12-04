@@ -42,3 +42,18 @@ ul {
 #hidden_preload_placeholder {
   display: none;
 }
+#list .item {
+  position: relative;
+  top: 0;
+}
+#list .item .onhover {
+  position: absolute;
+  top: 0;
+  opacity: 0.2;
+}
+#list .item.active .onhover {
+  opacity: 1 !important;
+}
+#list .item.active .onblur {
+  display: none;
+}

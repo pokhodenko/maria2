@@ -105,6 +105,7 @@ function pm_navigation_init() {
     drupal_add_js($path . '/js/navigation.js');
     drupal_add_js($path . '/js/image_description.js');
     drupal_add_js($path . '/js/history.js');
+    drupal_add_js($path . '/js/preview_images_animation.js');
     drupal_add_css($path . '/css/global.css', 'module');
     drupal_add_css($path . '/css/pm_navigation.css');
     drupal_add_css($path . '/css/block_locale.css');
@@ -120,12 +121,16 @@ function pm_navigation_init() {
  * @return string
  */
 function pm_navigation_home_page_callback() {
-
+  global $language;
+  $lang = $language->language;
   $result = db_query('
     SELECT
       n.nid,
       r.title,
-      r.body,
+      r.title as title,
+      p.field_title_ru_value,
+      p.field_description_value,
+      p.field_description_ru_value,
       p.field_category_value,
       i_p.filepath as preview_filepath,
       i_m.filepath as main_filepath
@@ -143,6 +148,7 @@ function pm_navigation_home_page_callback() {
 
   $rows = array();
   while ($row = db_fetch_array($result)) {
+    pm_navigation_translate($row, $lang);
     $rows[] = $row;
   }
 
@@ -156,14 +162,17 @@ function pm_navigation_home_page_callback() {
  * @param type $id
  */
 function pm_navigation_category_item_callback($category = NULL, $id = FALSE) {
-
+  global $language;
+  $lang = $language->language;
   $site_name = variable_get('site_name');
 
   $result = db_query('
     SELECT
       n.nid,
-      r.title,
-      r.body,
+      r.title as title,
+      p.field_title_ru_value,
+      p.field_description_value,
+      p.field_description_ru_value,
       p.field_category_value,
       i_p.filepath as preview_filepath,
       i_m.filepath as main_filepath
@@ -185,6 +194,7 @@ function pm_navigation_category_item_callback($category = NULL, $id = FALSE) {
   $current_item = FALSE;
 
   while ($row = db_fetch_array($result)) {
+    pm_navigation_translate($row, $lang);
     $rows[$row['nid']] = $row;
     // Find item by id or set first as current.
     if ($current_item == FALSE) {
@@ -204,6 +214,19 @@ function pm_navigation_category_item_callback($category = NULL, $id = FALSE) {
   $paged['pager'] = theme('gallery_pager',$paged, $current_item);
 
   return theme('gallery_category', $paged, $current_item);
+}
+
+function pm_navigation_translate(&$item, $language) {
+  switch($language) {
+    case 'en':
+      //$item['title'] = $item['title'];
+      $item['description'] = $item['field_description_value'];
+      break;
+    case 'ru':
+      $item['title'] = $item['field_title_ru_value'];
+      $item['description'] = $item['field_description_ru_value'];
+      break;
+  }
 }
 
 /**
@@ -241,13 +264,13 @@ function pm_navigation_return_paged_array($array, $per_page, $current) {
  * @param string $filepath
  * @return string Html for needed image.
  */
-function pm_theme_imagecache($preset_name, $filepath) {
+function pm_theme_imagecache($preset_name, $filepath, $title = NULL) {
   $preset = imagecache_preset_by_name($preset_name);
   $dst = imagecache_create_path($preset_name, $filepath);
   // Ensure existing derivative or try to create it on the fly
   if (file_exists($dst) || imagecache_build_derivative($preset['actions'], $filepath, $dst)) {
     // Do what you need to do with the image
-    return theme_imagecache($preset_name, $filepath);
+    return theme_imagecache($preset_name, $filepath, $title, $title);
   }
 }
 

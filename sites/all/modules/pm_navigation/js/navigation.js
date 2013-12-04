@@ -17,9 +17,9 @@ var animationCompleted = true;
         var status = ajaxLinksClass.getAjaxData(this.getAttribute('href'));
         debug(status);
         if (status === 'pending') {
-          return false;
+          return;
         } else if (status !== 'not_started') {
-          return false;
+          return;
         }
         ajaxPreLoadNextPage(this);
       }
@@ -257,6 +257,7 @@ var animationCompleted = true;
       $ajaxNavigationLinks.unbind('click');
       Drupal.behaviors.pm_navigation();
       Drupal.behaviors.pm_navigation_description();
+      Drupal.behaviors.pm_navigation_previews_animation();
     };
 
   };

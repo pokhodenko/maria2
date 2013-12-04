@@ -88,8 +88,14 @@ function pm_navigation_exclude_langcode(&$url) {
 function pm_navigation_init() {
 
   $path = drupal_get_normal_path($_GET['q']);
+  $pm_urls = implode(PHP_EOL, array(
+    'home_page',
+    'gallery*',
+    'contact',
+    'user'
+  ));
 
-  if (drupal_match_path($path, implode(PHP_EOL, array('home_page', 'gallery*', 'contact')))) {
+  if (drupal_match_path($path, $pm_urls)) {
     $site_name = variable_get('site_name', 'Pohodenko Maria');
     drupal_add_js(array('pm_navigation' => array(
         'site_name' => $site_name,
@@ -97,7 +103,6 @@ function pm_navigation_init() {
       )), 'setting');
     $path = drupal_get_path('module', 'pm_navigation');
     drupal_add_js($path . '/js/navigation.js');
-    drupal_add_js($path . '/js/flux.js');
     drupal_add_js($path . '/js/image_description.js');
     drupal_add_js($path . '/js/history.js');
     drupal_add_css($path . '/css/global.css', 'module');

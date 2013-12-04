@@ -57,7 +57,7 @@ var animationCompleted = true;
           url: '/ajax_navigation/',
           type: 'GET',
           data: {url: href},
-          dataType: 'html',
+          dataType: 'json',
           success: function(data) {
             ajaxLinksClass.completeAjax(href, data);
           },
@@ -97,7 +97,7 @@ var animationCompleted = true;
           url: '/ajax_navigation/',
           type: 'GET',
           data: {url: href},
-          dataType: 'html',
+          dataType: 'json',
           success: function(data) {
             readyClass.saveData('page', navInfo.placeholder, data, href);
           },
@@ -248,13 +248,10 @@ var animationCompleted = true;
       var page = readyClass.getData('page');
       debug('append new data');
       debug(page);
-      var $pageData = $(page.data);
-      var header = $pageData.find('#header').html();
-      $('#header').html(header);
-      var content = $pageData.find('#content').html();
-      historyPushState(page.url, content);
+      $('#header').html(page.data.header);
+      historyPushState(page.url, page.data.content);
 
-      $(page.placeholder).html(content);
+      $(page.placeholder).html(page.data.content);
       animateNextPage();
 
       $ajaxNavigationLinks.unbind('click');
@@ -271,7 +268,6 @@ var animationCompleted = true;
  */
 function AjaxLinksClass() {
   this.data = new Array();
-  this.is_busy = false;
 }
 AjaxLinksClass.prototype.startAjax = function(url) {
   this.data[url] = 'pending';
@@ -280,9 +276,9 @@ AjaxLinksClass.prototype.startAjax = function(url) {
 
 AjaxLinksClass.prototype.completeAjax = function(url, data) {
   debug(url);
-  $('#hidden_preload_placeholder').html($(data).find('#content'));
+  $('#hidden_preload_placeholder').html(data.content);
   this.data[url] = data;
-}
+};
 
 AjaxLinksClass.prototype.getAjaxData = function(url) {
   if (typeof this.data[url] == 'undefined') {
@@ -290,10 +286,7 @@ AjaxLinksClass.prototype.getAjaxData = function(url) {
   } else {
     return this.data[url];
   }
-}
-AjaxLinksClass.prototype.isBusy = function() {
-
-}
+};
 
 /**
  * AjaxLinksClass instance.

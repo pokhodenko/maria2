@@ -1,5 +1,4 @@
-<div id="page">
-  <div id="header">
+  <?php ob_start();?>
     <?php if (!empty($header)): ?>
       <div id="header-region">
         <?php print $header; ?>
@@ -14,14 +13,8 @@
       <?php endif; ?>
 
     </div>
-  </div>
-  <div class="clearfix"></div>
-  <div id="container" class="clear-block">
-
-    <div id="content">
-      <?php print $content; ?>
-    </div>
-    <div id="animation-placeholder"></div>
-    <div id="render-placeholder"></div>
-  </div>
-</div>
+  <?php $header = ob_get_clean(); ?>
+<?php echo json_encode(array(
+  'header' => $header,
+  'content' => $content
+  )); ?>
